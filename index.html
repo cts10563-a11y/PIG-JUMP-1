@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pig Jump - Advanced Visuals</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+        :root {
+            --sky-color-day: #87CEEB;
+            --sky-color-sunset: #FF99AA; /* Transition color */
+            --grass-color: #6AA84F;
+            --dirt-color: #A0522D;
+            --pig-color: #FFB6C1;
+            --snout-color: #FF69B4;
+            --main-font: 'Fredoka One', cursive;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f8ff;
+            font-family: var(--main-font);
+            overflow: hidden;
+            user-select: none;
+        }
+
+        #game-container {
+            width: 600px;
+            height: 300px;
+            border: 6px solid #4a2c1d;
+            background-color: var(--sky-color-day);
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: background-color 1.5s ease;
+        }
+
+        /* --- ADVANCED BACKGROUND ELEMENTS --- */
+        #clouds {
+            position: absolute; top: 10px; width: 200%; height: 80px;
+            background: repeating-linear-gradient(90deg, #fff 0 20px, transparent 20px 40px);
+            background-size: 600px 100%;
+            animation: moveClouds 20s linear infinite;
+        }
+        @keyframes moveClouds { 0% { background-position: 0 0; } 100% { background-position: -600px 0; } }
+
+        /* --- ADVANCED GROUND --- */
+        #ground-container {
+            width: 100%;
+            height: 40px;
+            position: absolute;
+            bottom: 0;
+            z-index: 10;
+        }
+        #grass {
+            height: 20px;
+            background: linear-gradient(to bottom, var(--grass-color) 0%, var(--grass-color) 70%, #5d9845 100%);
+            position: relative;
+            z-index: 11;
+        }
+        /* Simple ground texture effect */
+        #grass::before {
+            content: '';
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: repeating-linear-gradient(135deg, transparent 0 5px, rgba(0,0,0,0.1) 5px 6px);
+            opacity: 0.3;
+        }
+
+        #dirt {
+            height: 20px;
+            background-color: var(--dirt-color);
+            z-index: 10;
+        }
+
+        /* --- THE PIG PICTURE (SVG) --- */
+        #pig {
+            width: 70px; /* Slightly larger */
+            height: 70px;
+            position: absolute;
+            top: 210px; /* Adjusted for new ground height */
+            left: 50px;
+            z-index: 15;
+            transition: transform 0.1s ease;
+        }
+        .animate-jump {
+            animation: jump 0.6s cubic-bezier(0.42, 0, 0.58, 1); /* Smoother jump */
+        }
+
+        @keyframes jump {
+            0% { top: 210px; transform: rotate(0deg); }
+            50% { top: 90px; transform: rotate(5deg); }
+            100% { top: 210px; transform: rotate(0deg); }
+        }
+
+        /* --- ADVANCED OBSTACLE (TURNIP) --- */
+        #obstacle {
+            width: 40px;
+            height: 50px;
+            position: absolute;
+            top: 220px;
+            left: 600px;
+            z-index: 12;
+            transform-origin: bottom;
+            animation: moveObstacle 1s infinite linear;
+        }
+
+        .animate-obstacle {
+            /* Animation duration will be set dynamically by JavaScript */
+            animation: moveObstacle 1s infinite linear;
+        }
+
+        @keyframes moveObstacle {
+            0% { left: 600px; transform: rotate(0deg); }
+            50% { transform: rotate(2deg); }
+            100% { left: -50px; transform: rotate(-2deg); }
+        }
+
+        /* Turnip Shape using pseudo-elements */
+        .turnip-body {
+            position: absolute;
+            width: 30px; height: 35px; background-color: #f7f7f7;
+            border-radius: 50% / 60% 60% 40% 40%;
+            border: 3px solid #333;
+            bottom: 0; left: 5px;
+        }
+        .turnip-leaves {
+            position: absolute; top: -15px; left: 10px;
+            width: 20px; height: 15px;
+            background-color: #2ecc71;
+            border-radius: 50% 50% 0 0;
+            border: 3px solid #333;
+            border-bottom: none;
+        }
+
+        /* --- UI & TEXT --- */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center;
+            background-color: rgba(0,0,0,0.7); /* Darker overlay for contrast */
+            color: white;
+            z-index: 20; text-align: center;
+            transition: opacity 0.5s;
+        }
+
+        .hidden { display: none !important; opacity: 0; }
+
+        h1 { margin: 0 0 10px 0; font-size: 44px; color: #FFD700; text-shadow: 2px 2px #333; }
+        p { margin: 5px 0 25px 0; color: #eee; font-size: 22px; text-shadow: 1px 1px #333; }
+
+        button {
+            padding: 15px 40px; font-size: 24px;
+            background-color: #e74c3c; /* Red for start/restart */
+            color: white;
+            border: none; border-radius: 5px; cursor: pointer;
+            box-shadow: 0 6px #c0392b; font-family: inherit;
+            transition: all 0.1s;
+        }
+        button:hover { background-color: #c0392b; }
+        button:active { transform: translateY(6px); box-shadow: 0 0 #c0392b; }
+
+        #hud { position: absolute; top: 15px; left: 15px; z-index: 15; }
+        .score-text { font-size: 28px; color: #4a2c1d; margin: 0; text-shadow: 1px 1px white; }
+
+        #music-btn {
+            position: absolute; top: 15px; right: 15px;
+            font-size: 16px; padding: 5px 15px;
+            background-color: #3498db; color: white; border: none;
+            border-radius: 5px; cursor: pointer;
+            box-shadow: 0 3px #2980b9;
+        }
+        #music-btn:active { transform: translateY(3px); box-shadow: 0 0 #2980b9; }
+
+        /* Confetti remains the same */
+        .confetti {
+            position: absolute; width: 10px; height: 10px; background-color: gold;
+            animation: fall 2s infinite linear; z-index: 100;
+        }
+        @keyframes fall { 0% { top: -10px; } 100% { top: 300px; } }
+    </style>
+</head>
+<body>
+
+    <div id="game-container" onclick="jump()">
+        <div id="clouds"></div>
+        <div id="hud">
+            <p class="score-text">Level <span id="level">1</span> | Jumps: <span id="score">0</span> / 15</p>
+        </div>
+
+        <button id="music-btn" onclick="toggleMusic(event)">🎵 Music: ON</button>
+
+        <div id="pig">
+            <svg viewBox="0 0 100 100" width="70" height="70">
+                <circle cx="50" cy="50" r="45" fill="var(--pig-color)" stroke="#333" stroke-width="3"/>
+                <path d="M 20 20 L 10 40 L 35 30 Z" fill="var(--pig-color)" stroke="#333" stroke-width="3"/>
+                <path d="M 80 20 L 90 40 L 65 30 Z" fill="var(--pig-color)" stroke="#333" stroke-width="3"/>
+                <ellipse cx="50" cy="55" rx="15" ry="10" fill="var(--snout-color)" stroke="#333" stroke-width="2"/>
+                <circle cx="45" cy="55" r="3" fill="white"/>
+                <circle cx="55" cy="55" r="3" fill="white"/>
+                <circle cx="35" cy="40" r="5" fill="black"/>
+                <circle cx="65" cy="40" r="5" fill="black"/>
+                <path id="pig-mouth" d="M 40 70 Q 50 65 60 70" stroke="#333" stroke-width="3" fill="none"/>
+            </svg>
+        </div>
+
+        <div id="obstacle">
+            <div class="turnip-leaves"></div>
+            <div class="turnip-body"></div>
+        </div>
+
+        <div id="ground-container">
+            <div id="grass"></div>
+            <div id="dirt"></div>
+        </div>
+
+        <div id="ui-layer">
+            <h1 id="title-msg">Pig Jump: Level 1</h1>
+            <p id="subtitle-msg">Tap / Spacebar to Play. Complete 15 Jumps to Level Up!</p>
+            <button onclick="startGame(event)">START GAME</button>
+        </div>
+    </div>
+
+    <audio id="bg-music" loop>
+        <source src="https://incompetech.com/music/royalty-free/mp3-royaltyfree/Carefree.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const pig = document.getElementById("pig");
+        const pigMouth = document.getElementById("pig-mouth");
+        const obstacle = document.getElementById("obstacle");
+        const uiLayer = document.getElementById("ui-layer");
+        const titleMsg = document.getElementById("title-msg");
+        const subMsg = document.getElementById("subtitle-msg");
+        const scoreSpan = document.getElementById("score");
+        const levelSpan = document.getElementById("level");
+        const gameContainer = document.getElementById("game-container");
+        const musicBtn = document.getElementById("music-btn");
+        const audio = document.getElementById("bg-music");
+
+        let isGameRunning = false;
+        let score = 0;
+        let level = 1;
+        const ROUND_SCORE = 15;
+
+        let scoreInterval;
+        let collisionCheck;
+
+        // Base animation time (slower = easier)
+        const BASE_SPEED = 3.0;
+        // Speed increment per level
+        const SPEED_INCREMENT = 0.5;
+
+        // --- Mouth SVG Paths for Emotion ---
+        const MOUTH_NEUTRAL = "M 40 70 Q 50 65 60 70"; // Mountain shape
+        const MOUTH_SAD = "M 35 75 Q 50 60 65 75"; // Inverted curve
+        const MOUTH_HAPPY = "M 30 70 Q 50 90 70 70"; // Smile curve
+
+        // --- Music ---
+        // Play on load (or as soon as user interaction allows, due to browser autoplay policies)
+        function playMusic() {
+             // In a real browser, this might only work if triggered by user action,
+             // so the start button is a good place to call it, but we'll try here too.
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+                playPromise.then(_ => {
+                    musicBtn.innerText = "🎵 Music: ON";
+                }).catch(error => {
+                    // Autoplay failed, likely because of browser policy.
+                    // Keep the button ON/OFF functionality for when a user clicks.
+                });
+            }
+        }
+        playMusic(); // Attempt to play music on load
+
+        function toggleMusic(e) {
+            e.stopPropagation();
+            if (audio.paused) {
+                audio.play();
+                musicBtn.innerText = "🎵 Music: ON";
+            } else {
+                audio.pause();
+                musicBtn.innerText = "🎵 Music: OFF";
+            }
+        }
+
+        // --- Game Setup ---
+        function startGame(e) {
+            if(e) e.stopPropagation();
+
+            // Ensure music is playing when game starts
+            if (audio.paused) {
+                 // Try again on start button click
+                audio.play().then(() => musicBtn.innerText = "🎵 Music: ON").catch(e => console.log("Music play failed on start:", e));
+            }
+
+            // Reset state
+            isGameRunning = true;
+            if(level === 1) score = 0; // Only reset score completely on first start
+            scoreSpan.innerText = score % ROUND_SCORE;
+            uiLayer.classList.add("hidden");
+            pigMouth.setAttribute("d", MOUTH_NEUTRAL);
+
+            // Update Level Speed
+            const currentDuration = BASE_SPEED - (level - 1) * SPEED_INCREMENT;
+            obstacle.style.animationDuration = `${currentDuration}s`;
+            console.log(`Level ${level}, Speed: ${currentDuration.toFixed(2)}s`);
+
+            // Start Obstacle animation
+            obstacle.classList.remove("animate-obstacle");
+            void obstacle.offsetWidth;
+            obstacle.classList.add("animate-obstacle");
+
+            // Start Scoring
+            scoreInterval = setInterval(() => {
+                score++;
+                scoreSpan.innerText = score % ROUND_SCORE || ROUND_SCORE; // Score resets visual at 15
+
+                if(score % ROUND_SCORE === 0) {
+                    levelComplete();
+                }
+            }, 1000);
+
+            // Start Collision Check
+            collisionCheck = setInterval(checkDead, 10);
+        }
+
+        function stopGame() {
+            isGameRunning = false;
+            obstacle.classList.remove("animate-obstacle");
+            clearInterval(scoreInterval);
+            clearInterval(collisionCheck);
+        }
+
+        function jump() {
+            if (!isGameRunning) return;
+            if (pig.classList.contains("animate-jump")) return;
+            pig.classList.add("animate-jump");
+            setTimeout(() => { pig.classList.remove("animate-jump"); }, 600);
+        }
+
+        document.body.onkeyup = function(e) {
+            if (e.code === "Space") {
+                if(!isGameRunning && !uiLayer.classList.contains("hidden")) startGame();
+                else jump();
+            }
+        }
+
+        // --- Win / Loss ---
+        function checkDead() {
+            let pigTop = parseInt(window.getComputedStyle(pig).getPropertyValue("top"));
+            let pigLeft = parseInt(window.getComputedStyle(pig).getPropertyValue("left"));
+            let obstacleLeft = parseInt(window.getComputedStyle(obstacle).getPropertyValue("left"));
+            
+            const PIG_WIDTH = 70;
+            const OBSTACLE_WIDTH = 40;
+            const PIG_Y_COLLISION_LINE = 210; // The ground level
+            const PIG_X_START = 50;
+
+            // Simple Axis-Aligned Bounding Box (AABB) check
+            const pigXRight = PIG_X_START + PIG_WIDTH;
+            const obstacleXRight = obstacleLeft + OBSTACLE_WIDTH;
+
+            const isCollidingX = (pigXRight > obstacleLeft) && (PIG_X_START < obstacleXRight);
+            const isOnGround = pigTop >= PIG_Y_COLLISION_LINE - 10; // Small buffer
+
+            if (isCollidingX && isOnGround) {
+                gameOver();
+            }
+        }
+
+        function gameOver() {
+            stopGame();
+
+            // Set Sad Face
+            pigMouth.setAttribute("d", MOUTH_SAD);
+
+            titleMsg.innerText = `GAME OVER! (Level ${level})`;
+            subMsg.innerText = `You reached ${score} total jumps. Restart?`;
+            uiLayer.querySelector("button").innerText = "RESTART GAME";
+            level = 1; // Reset level for next game
+            levelSpan.innerText = level;
+
+            uiLayer.classList.remove("hidden");
+        }
+
+        function levelComplete() {
+            stopGame(); // Pause game
+
+            if (level >= 3) {
+                gameWin();
+                return;
+            }
+
+            // Level Up
+            level++;
+            levelSpan.innerText = level;
+
+            titleMsg.innerText = `LEVEL ${level-1} COMPLETE!`;
+            subMsg.innerHTML = `Prepare for **Level ${level}**! The Turnips are faster now!`;
+            uiLayer.querySelector("button").innerText = "CONTINUE";
+            uiLayer.querySelector("button").style.backgroundColor = '#2ecc71';
+            uiLayer.querySelector("button").style.boxShadow = '0 6px #27ae60';
+
+            // Wait for player to click, then start next level
+            uiLayer.querySelector("button").onclick = continueGame;
+            uiLayer.classList.remove("hidden");
+        }
+
+        function continueGame(e) {
+            // Reset button style and click handler
+            uiLayer.querySelector("button").style.backgroundColor = '#e74c3c';
+            uiLayer.querySelector("button").style.boxShadow = '0 6px #c0392b';
+            uiLayer.querySelector("button").onclick = startGame;
+
+            // Set up UI for next level
+            titleMsg.innerText = `Pig Jump: Level ${level}`;
+            subMsg.innerText = `Tap / Spacebar to Play. Complete 15 Jumps to Level Up!`;
+
+            // Continue the game (which resets speed/animation based on new level)
+            startGame(e);
+        }
+
+        function gameWin() {
+            // Happy Face
+            pigMouth.setAttribute("d", MOUTH_HAPPY);
+
+            // Win UI
+            titleMsg.innerText = "ULTIMATE VICTORY!";
+            subMsg.innerText = `The Pig is Happy! You beat Level ${level}! 🐷`;
+            uiLayer.querySelector("button").innerText = "PLAY AGAIN";
+            uiLayer.querySelector("button").style.backgroundColor = '#f1c40f'; // Gold button
+            uiLayer.querySelector("button").style.boxShadow = '0 6px #f39c12';
+
+            level = 1;
+            levelSpan.innerText = level;
+
+            uiLayer.classList.remove("hidden");
+            createConfetti();
+        }
+
+        function createConfetti() {
+            for(let i=0; i<30; i++) { // More confetti
+                let conf = document.createElement("div");
+                conf.classList.add("confetti");
+                conf.style.left = Math.random() * 600 + "px";
+                conf.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                conf.style.animationDuration = (Math.random() * 1.5 + 1) + "s";
+                gameContainer.appendChild(conf);
+                setTimeout(() => conf.remove(), 2500);
+            }
+        }
+    </script>
+</body>
+</html>
